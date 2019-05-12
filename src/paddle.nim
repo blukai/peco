@@ -10,14 +10,18 @@ type
     x*, y*: int
     w*, h*: int
 
-proc init*(pad: Paddle) =
-  pad.x = int((ScreenW - pad.w) / 2)
-  pad.y = ScreenH - pad.h
+proc init_left*(pad: Paddle) =
+  pad.x = 0
+  pad.y = int((ScreenH - pad.h) / 2)
 
-proc move*(pad: Paddle, x: int) =
-  pad.x = x
+proc init_right*(pad: Paddle) =
+  pad.x = ScreenW - pad.w
+  pad.y = int((ScreenH - pad.h) / 2)
 
-  if x < 0:
-    pad.x = 0
-  elif pad.x > ScreenW - pad.w:
-    pad.x = ScreenW - pad.w
+proc move*(pad: Paddle, y: int) =
+  pad.y = y
+
+  if y < 0:
+    pad.y = 0
+  elif pad.y > ScreenH - pad.h:
+    pad.y = ScreenH - pad.h

@@ -21,7 +21,8 @@ type
 
 var
   ball: ball_system.Ball
-  paddle: paddle_system.Paddle
+  paddle_left: paddle_system.Paddle
+  paddle_right: paddle_system.Paddle
 
 proc events(app: App): bool =
   result = true
@@ -37,7 +38,8 @@ proc events(app: App): bool =
             return false
           else: discard
       of sdl.MouseMotion:
-        paddle.move(event.motion.x - int(paddle.w / 2))
+        paddle_left.move(event.motion.y - int(paddle_left.h / 2))
+        paddle_right.move(event.motion.y - int(paddle_right.h / 2))
       else: discard
 
 proc main() =
@@ -88,13 +90,22 @@ proc main() =
     w: int(ball.radius * 2),
     h: int(ball.radius * 2))
 
-  paddle = paddle_system.Paddle(w: 100, h: 10)
-  paddle.init()
-  var paddle_rect = sdl.Rect(
-    x: cint(paddle.x),
-    y: cint(paddle.y),
-    w: paddle.w,
-    h: paddle.h,
+  paddle_left = paddle_system.Paddle(w: 10, h: 100)
+  paddle_left.init_left()
+  var paddle_left_rect = sdl.Rect(
+    x: cint(paddle_left.x),
+    y: cint(paddle_left.y),
+    w: paddle_left.w,
+    h: paddle_left.h,
+  )
+
+  paddle_right = paddle_system.Paddle(w: 10, h: 100)
+  paddle_right.init_right()
+  var paddle_right_rect = sdl.Rect(
+    x: cint(paddle_right.x),
+    y: cint(paddle_right.y),
+    w: paddle_right.w,
+    h: paddle_right.h,
   )
 
   while app.events():
@@ -105,17 +116,20 @@ proc main() =
       sdl.logWarn(sdl.LogCategoryVideo, "could not clear screen: %s", sdl.getError())
     # ----
 
-    ball.move(paddle)
+    ball.move(addr(paddle_left), addr(paddle_right))
     ball_rect.x = int(ball.x)
     ball_rect.y = int(ball.y)
     discard sdl.setRenderDrawColor(app.renderer, sdl.Color(r: 255))
     discard app.renderer.renderDrawRect(addr(ball_rect))
     discard app.renderer.renderFillRect(addr(ball_rect))
 
-    paddle_rect.x = int(paddle.x)
     discard sdl.setRenderDrawColor(app.renderer, sdl.Color(r: 255))
-    discard app.renderer.renderDrawRect(addr(paddle_rect))
-    discard app.renderer.renderFillRect(addr(paddle_rect))
+    paddle_left_rect.y = int(paddle_left.y)
+    discard app.renderer.renderDrawRect(addr(paddle_left_rect))
+    discard app.renderer.renderFillRect(addr(paddle_left_rect))
+    paddle_right_rect.y = int(paddle_right.y)
+    discard app.renderer.renderDrawRect(addr(paddle_right_rect))
+    discard app.renderer.renderFillRect(addr(paddle_right_rect))
 
     # ----
     app.renderer.renderPresent()
