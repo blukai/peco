@@ -105,7 +105,7 @@ proc main() =
       sdl.logWarn(sdl.LogCategoryVideo, "could not clear screen: %s", sdl.getError())
     # ----
 
-    ball.move()
+    ball.move(paddle)
     ball_rect.x = int(ball.x)
     ball_rect.y = int(ball.y)
     discard sdl.setRenderDrawColor(app.renderer, sdl.Color(r: 255))
