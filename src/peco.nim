@@ -1,6 +1,7 @@
 import
   sdl2/sdl,
-  random
+  sdl2/sdl_gfx_primitives as gfx,
+  ball
 
 const
   Title = "Peco"
@@ -8,7 +9,7 @@ const
   ScreenH = 480
   WindowFlags = 0
   RendererFlags = sdl.RendererAccelerated or sdl.RendererPresentVsync
-  FrameRate = 20
+  FrameRate = 60
   FrameRateInterval = 1000
 
 type
@@ -16,7 +17,6 @@ type
   AppObj = object
     window*: sdl.Window
     renderer*: sdl.Renderer
-    player*: ptr sdl.Rect
 
 proc events(app: App): bool =
   result = true
@@ -43,8 +43,8 @@ proc main() =
 
   app.window = sdl.createWindow(
     Title,
-    sdl.WindowPosUndefined,
-    sdl.WindowPosUndefined,
+    sdl.WindowPosCentered,
+    sdl.WindowPosCentered,
     ScreenW,
     ScreenH,
     WindowFlags)
@@ -65,15 +65,19 @@ proc main() =
 
   sdl.logInfo(sdl.LogCategoryApplication, "sdl initialized successfully")
 
-
   var
-    # fps counter
+    # fps info
     fps_lasttime, fps_current, fps_frames: uint32
     # fps limiter
     stime, etime, delta: uint32
 
-  var rect = sdl.Rect(x: 10, y: 10, w: 100, h: 100)
-  app.player = addr(rect)
+  let ball = ball.Ball(radius: 10, color: sdl.Color(g: 255))
+  var ball_rect = sdl.Rect(
+    x: cint((ScreenW - ball.radius) / 2),
+    y: cint((ScreenH - ball.radius) / 2),
+    w: ball.radius.int * 2,
+    h: ball.radius.int * 2)
+  ball.launch()
 
   while app.events():
     stime = sdl.getTicks()
@@ -81,20 +85,26 @@ proc main() =
     discard sdl.setRenderDrawColor(app.renderer, sdl.Color(r: 255, g: 128, b: 128))
     if app.renderer.renderClear() != 0:
       sdl.logWarn(sdl.LogCategoryVideo, "could not clear screen: %s", sdl.getError())
+    # ----
 
+    ball.move(addr(ball_rect))
     discard sdl.setRenderDrawColor(app.renderer, sdl.Color(r: 255))
-    discard app.renderer.renderDrawRect(addr(rect))
-    discard app.renderer.renderFillRect(addr(rect))
+    discard app.renderer.renderDrawRect(addr(ball_rect))
+    discard app.renderer.renderFillRect(addr(ball_rect))
 
+    # ----
     app.renderer.renderPresent()
+    # ----
 
     etime = sdl.getTicks()
+    # fps info
     fps_frames += 1
     if fps_lasttime + FrameRateInterval < etime:
-      sdl.logInfo(sdl.LogCategoryApplication, "fps: %d", fps_current)
       fps_lasttime = etime
       fps_current = fps_frames
       fps_frames = 0
+      sdl.logInfo(sdl.LogCategoryApplication, "fps: %d", fps_current)
+    # fps limiter
     delta = etime - stime
     if delta < uint32(FrameRateInterval / FrameRate):
       sdl.delay(uint32(FrameRateInterval / FrameRate) - delta)
