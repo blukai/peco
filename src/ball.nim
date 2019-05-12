@@ -1,6 +1,4 @@
-import
-  sdl2/sdl,
-  random
+import sdl2/sdl
 
 const
   ScreenW = 640
@@ -9,22 +7,18 @@ const
 type
   Ball* = ref BallObj
   BallObj = object
-    x, y: float
+    x*, y*: float
     radius*: float
-    color*: sdl.Color
     vel_x, vel_y: float
 
-proc launch*(ball: Ball) =
-  ball.x = ScreenW.float/2 - ball.radius
-  ball.y = ScreenH.float/2 - ball.radius
+proc init*(ball: Ball) =
+  ball.x = float(ScreenW) / 2 - ball.radius
+  ball.y = float(ScreenH) / 2 - ball.radius
 
   ball.vel_x = 3
   ball.vel_y = 5
 
-  if (rand(1'f) > 0.5):
-    ball.vel_x *= -1
-
-proc move*(ball: Ball, rect: ptr sdl.Rect) =
+proc move*(ball: Ball) =
   ball.x += ball.vel_x
   ball.y += ball.vel_y
 
@@ -40,6 +34,3 @@ proc move*(ball: Ball, rect: ptr sdl.Rect) =
   # left
   if ball.x <= 0:
     ball.vel_x *= -1
-
-  rect.x = ball.x.int
-  rect.y = ball.y.int

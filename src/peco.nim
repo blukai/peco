@@ -1,7 +1,8 @@
 import
   sdl2/sdl,
   sdl2/sdl_gfx_primitives as gfx,
-  ball
+  ball as ball_system,
+  paddle as paddle_system
 
 const
   Title = "Peco"
@@ -18,6 +19,10 @@ type
     window*: sdl.Window
     renderer*: sdl.Renderer
 
+var
+  ball: ball_system.Ball
+  paddle: paddle_system.Paddle
+
 proc events(app: App): bool =
   result = true
   var event: sdl.Event
@@ -31,6 +36,8 @@ proc events(app: App): bool =
           of sdl.KQ:
             return false
           else: discard
+      of sdl.MouseMotion:
+        paddle.move(event.motion.x - int(paddle.w / 2))
       else: discard
 
 proc main() =
@@ -71,13 +78,24 @@ proc main() =
     # fps limiter
     stime, etime, delta: uint32
 
-  let ball = ball.Ball(radius: 10, color: sdl.Color(g: 255))
+  # entities
+
+  ball = ball_system.Ball(radius: 10)
+  ball.init()
   var ball_rect = sdl.Rect(
-    x: cint((ScreenW - ball.radius) / 2),
-    y: cint((ScreenH - ball.radius) / 2),
-    w: ball.radius.int * 2,
-    h: ball.radius.int * 2)
-  ball.launch()
+    x: cint(ball.x),
+    y: cint(ball.y),
+    w: int(ball.radius * 2),
+    h: int(ball.radius * 2))
+
+  paddle = paddle_system.Paddle(w: 100, h: 10)
+  paddle.init()
+  var paddle_rect = sdl.Rect(
+    x: cint(paddle.x),
+    y: cint(paddle.y),
+    w: paddle.w,
+    h: paddle.h,
+  )
 
   while app.events():
     stime = sdl.getTicks()
@@ -87,10 +105,17 @@ proc main() =
       sdl.logWarn(sdl.LogCategoryVideo, "could not clear screen: %s", sdl.getError())
     # ----
 
-    ball.move(addr(ball_rect))
+    ball.move()
+    ball_rect.x = int(ball.x)
+    ball_rect.y = int(ball.y)
     discard sdl.setRenderDrawColor(app.renderer, sdl.Color(r: 255))
     discard app.renderer.renderDrawRect(addr(ball_rect))
     discard app.renderer.renderFillRect(addr(ball_rect))
+
+    paddle_rect.x = int(paddle.x)
+    discard sdl.setRenderDrawColor(app.renderer, sdl.Color(r: 255))
+    discard app.renderer.renderDrawRect(addr(paddle_rect))
+    discard app.renderer.renderFillRect(addr(paddle_rect))
 
     # ----
     app.renderer.renderPresent()
