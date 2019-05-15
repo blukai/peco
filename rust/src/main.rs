@@ -14,6 +14,9 @@ const BALL_RADIUS: u32 = 5;
 const BALL_VELOCITY_X: i32 = 5;
 const BALL_VELOCITY_Y: i32 = 3;
 
+const PADDLE_WIDTH: u32 = 10;
+const PADDLE_HEIGHT: u32 = 100;
+
 #[derive(Debug)]
 struct Ball {
     vel_x: i32,
@@ -38,9 +41,11 @@ impl Ball {
     pub fn reset(&mut self) {
         self.vel_x = BALL_VELOCITY_X;
         self.vel_y = BALL_VELOCITY_Y;
+        self.rect.x = (WINDOW_WIDTH / 2 - BALL_RADIUS) as i32;
+        self.rect.y = (WINDOW_HEIGHT / 2 - BALL_RADIUS) as i32;
     }
 
-    pub fn shift(&mut self) {
+    pub fn shift(&mut self, paddles: &Vec<&Paddle>) {
         self.rect.set_x(self.rect.x() + self.vel_x);
         self.rect.set_y(self.rect.y() + self.vel_y);
 
@@ -48,16 +53,54 @@ impl Ball {
         if self.rect.y() <= 0 {
             // top
             self.vel_y *= -1;
-        } if self.rect.y() >= (WINDOW_HEIGHT - 2 * BALL_RADIUS) as i32 {
+        } else if self.rect.y() >= (WINDOW_HEIGHT - 2 * BALL_RADIUS) as i32 {
             // bottom
             self.vel_y += -1;
-        } if self.rect.x() <= 0 {
+        } else if self.rect.x() < PADDLE_WIDTH as i32 {
             // left
-            self.vel_x *= -1;
-        } if self.rect.x() >= (WINDOW_WIDTH - 2 * BALL_RADIUS) as i32 {
+            self.reset();
+        } else if self.rect.x() + BALL_RADIUS as i32 * 2 > (WINDOW_WIDTH - PADDLE_WIDTH) as i32 {
             // right
+            self.reset();
+        }
+
+        let (left, right) = (paddles[0], paddles[1]);
+        if self.rect.y() >= left.rect.y() && self.rect.y() <= left.rect.y() + PADDLE_HEIGHT as i32 && self.rect.x() <= left.rect.x() + PADDLE_WIDTH as i32 {
+            self.vel_x *= -1;
+        } else if self.rect.y() >= right.rect.y() && self.rect.y() <= right.rect.y() + PADDLE_HEIGHT as i32 && self.rect.x() + 2 * BALL_RADIUS as i32 >= right.rect.x {
             self.vel_x *= -1;
         }
+    }
+}
+
+#[derive(PartialEq, Eq)]
+enum Side {
+    Left,
+    Right,
+}
+
+struct Paddle {
+    pub rect: Rect,
+}
+
+impl Paddle {
+    pub fn new(side: Side) -> Paddle {
+        let x = if side == Side::Left {
+            0
+        } else {
+            WINDOW_WIDTH - PADDLE_WIDTH
+        } as i32;
+        Paddle {
+            rect: Rect::new(
+                x,
+                (WINDOW_HEIGHT - PADDLE_HEIGHT) as i32 / 2,
+                PADDLE_WIDTH,
+                PADDLE_HEIGHT),
+        }
+    }
+
+    pub fn shift(&mut self, y: i32) {
+        self.rect.set_y(y - PADDLE_HEIGHT as i32 / 2);
     }
 }
 
@@ -77,6 +120,8 @@ fn main() {
     fps.set_framerate(60).unwrap();
 
     let mut ball = Ball::new();
+    let mut left_paddle = Paddle::new(Side::Left);
+    let mut right_paddle = Paddle::new(Side::Right);
 
     let mut event_pump = sdl_context.event_pump().unwrap();
     'running: loop {
@@ -89,13 +134,19 @@ fn main() {
                 Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
                 },
+                Event::MouseMotion { y, .. } => {
+                    left_paddle.shift(y);
+                    right_paddle.shift(y);
+                },
                 _ => {}
             }
         }
 
-        ball.shift();
+        ball.shift(&vec![&left_paddle, &right_paddle]);
         canvas.set_draw_color(Color::RGB(255, 255, 255));
         canvas.fill_rect(ball.rect).unwrap();
+        canvas.fill_rect(left_paddle.rect).unwrap();
+        canvas.fill_rect(right_paddle.rect).unwrap();
 
         canvas.present();
         fps.delay();
